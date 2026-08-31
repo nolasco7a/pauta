@@ -7,11 +7,16 @@ import type { RootStackParamList } from '../navigation/types';
 import { colors, radii, spacing, type } from '../theme';
 import { useScript, type ScriptEntry } from '../state/ScriptContext';
 import RecentScriptCard from '../components/RecentScriptCard';
+import { useTranslation, type AppLocale } from '../i18n';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
 
 export default function DashboardScreen({ navigation }: Props) {
   const { scripts, startNewScript, openScript, deleteScript } = useScript();
+  const { t, locale, setLocale } = useTranslation();
+  const nextLocale: AppLocale = locale === 'es' ? 'en' : 'es';
+
+  const toggleLocale = () => setLocale(nextLocale);
 
   const handleStartNew = () => {
     startNewScript();
@@ -29,6 +34,9 @@ export default function DashboardScreen({ navigation }: Props) {
       <View style={styles.brandRow}>
         <Video size={20} color={colors.accent} strokeWidth={2} />
         <Text style={[type.title, styles.brandText]}>Pauta</Text>
+        <Pressable style={styles.localeSwitch} onPress={toggleLocale} hitSlop={8}>
+          <Text style={styles.localeSwitchText}>{nextLocale.toUpperCase()}</Text>
+        </Pressable>
       </View>
 
       {/* Hero */}
@@ -38,9 +46,9 @@ export default function DashboardScreen({ navigation }: Props) {
         </View>
 
         <View style={styles.heroCopy}>
-          <Text style={[type.display, styles.heroTitle]}>Crea tu próximo video</Text>
+          <Text style={[type.display, styles.heroTitle]}>{t('dashboard.heroTitle')}</Text>
           <Text style={[type.bodyRegular, styles.heroSubtitle]}>
-            Escribe el guion, ajusta el ritmo del teleprompter y graba sin distracciones.
+            {t('dashboard.heroSubtitle')}
           </Text>
         </View>
 
@@ -49,17 +57,17 @@ export default function DashboardScreen({ navigation }: Props) {
           onPress={handleStartNew}
         >
           <Plus size={19} color={colors.accentText} strokeWidth={2.4} />
-          <Text style={[type.title, styles.ctaText]}>Iniciar Proyecto</Text>
+          <Text style={[type.title, styles.ctaText]}>{t('dashboard.startProject')}</Text>
         </Pressable>
       </View>
 
       {/* Guiones recientes */}
       <View style={styles.recentSection}>
         <View style={styles.recentHeader}>
-          <Text style={[type.label, styles.recentLabel]}>Guiones recientes</Text>
+          <Text style={[type.label, styles.recentLabel]}>{t('dashboard.recentScripts')}</Text>
           {scripts.length > 0 && (
             <Pressable onPress={() => navigation.navigate('AllScripts')} hitSlop={8}>
-              <Text style={styles.seeAllText}>Ver todos</Text>
+              <Text style={styles.seeAllText}>{t('dashboard.seeAll')}</Text>
             </Pressable>
           )}
         </View>
@@ -87,7 +95,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.sm,
   },
-  brandText: { color: colors.textPrimary, letterSpacing: 0.2 },
+  brandText: { color: colors.textPrimary, letterSpacing: 0.2, flex: 1 },
+  localeSwitch: {
+    paddingVertical: 5,
+    paddingHorizontal: 11,
+    borderRadius: radii.full,
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  localeSwitchText: {
+    fontFamily: 'Manrope_700Bold',
+    fontSize: 11,
+    letterSpacing: 0.5,
+    color: colors.textSecondary,
+  },
   hero: {
     flex: 1,
     alignItems: 'center',

@@ -1,0 +1,64 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "delete": "Delete"
+  },
+  "dashboard": {
+    "heroTitle": "Create your next video",
+    "heroSubtitle": "Write the script, adjust the teleprompter's pace, and record without distractions.",
+    "startProject": "Start Project",
+    "recentScripts": "Recent Scripts",
+    "seeAll": "See all"
+  },
+  "allScripts": {
+    "title": "All the scripts",
+    "empty": "You don't have any saved scripts yet."
+  },
+  "scriptCard": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "daysAgo": "%{count} days ago",
+    "videoCount": {
+      "one": "%{count} video",
+      "other": "%{count} videos"
+    },
+    "deleteTitle": "Delete the hyphen?",
+    "deleteMessage": "\"%{title}\" will be removed. Videos that have already been recorded will not be affected."
+  },
+  "scriptEditor": {
+    "titlePlaceholder": "New Script",
+    "scriptLabel": "Script",
+    "scriptPlaceholder": "Type or paste the text you want to read on camera here…",
+    "wordCount": {
+      "one": "%{count} word",
+      "other": "%{count} words"
+    },
+    "readingTime": "~%{count} seconds to read",
+    "recordedVideos": {
+      "one": "Recorded video (%{count})",
+      "other": "Recorded videos (%{count})"
+    },
+    "videoLabel": "Video %{index}",
+    "save": "Save",
+    "record": "Record"
+  },
+  "camera": {
+    "permissionTitle": "Allows access",
+    "permissionBody": "Pauta needs your camera and microphone to record the video.",
+    "permissionButton": "Allow access",
+    "tapToRecord": "Tap to record"
+  },
+  "settingsSheet": {
+    "title": "Teleprompter Settings",
+    "speed": "Speed",
+    "slow": "Slow",
+    "fast": "Fast",
+    "textSize": "Text size"
+  },
+  "videoPlayer": {
+    "title": "Video"
+  },
+  "teleprompter": {
+    "placeholder": "Write your script to see it here…"
+  }
+}

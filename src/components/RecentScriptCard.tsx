@@ -3,6 +3,8 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { FileText, Trash } from 'lucide-react-native';
 import { colors, radii, type } from '../theme';
 import type { ScriptEntry } from '../state/ScriptContext';
+import type { TranslateOptions } from 'i18n-js';
+import { useTranslation } from '../i18n';
 
 type Props = {
   item: ScriptEntry;
@@ -10,22 +12,30 @@ type Props = {
   onDelete: () => void;
 };
 
-function formatRelativeDate(ts: number) {
+type T = (scope: string, options?: TranslateOptions) => string;
+
+function formatRelativeDate(ts: number, t: T) {
   const diffDays = Math.floor((Date.now() - ts) / 86_400_000);
-  if (diffDays <= 0) return 'Hoy';
-  if (diffDays === 1) return 'Ayer';
-  return `Hace ${diffDays} días`;
+  if (diffDays <= 0) return t('scriptCard.today');
+  if (diffDays === 1) return t('scriptCard.yesterday');
+  return t('scriptCard.daysAgo', { count: diffDays });
 }
 
 export default function RecentScriptCard({ item, onPress, onDelete }: Props) {
+  const { t } = useTranslation();
   const videoCount = item.videos.length;
-  const meta = `${formatRelativeDate(item.updatedAt)} · ${videoCount} ${videoCount === 1 ? 'video' : 'videos'}`;
+  const meta = `${formatRelativeDate(item.updatedAt, t)} · ${t('scriptCard.videoCount', { count: videoCount })}`;
+  const title = item.title.trim() || t('scriptEditor.titlePlaceholder');
 
   const confirmDelete = () => {
-    Alert.alert('¿Borrar guion?', `Se eliminará "${item.title}". Los videos ya grabados no se tocan.`, [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Borrar', style: 'destructive', onPress: onDelete },
-    ]);
+    Alert.alert(
+      t('scriptCard.deleteTitle'),
+      t('scriptCard.deleteMessage', { title }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.delete'), style: 'destructive', onPress: onDelete },
+      ]
+    );
   };
 
   return (
@@ -36,7 +46,7 @@ export default function RecentScriptCard({ item, onPress, onDelete }: Props) {
         </View>
         <View style={styles.cardText}>
           <Text style={[type.body, styles.cardTitle]} numberOfLines={1}>
-            {item.title}
+            {title}
           </Text>
           <Text style={[type.caption, styles.cardMeta]}>{meta}</Text>
         </View>

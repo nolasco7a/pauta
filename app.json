@@ -54,7 +54,8 @@
         }
       ],
       "./plugins/withGestureHandlerCycleFix",
-      "expo-video"
+      "expo-video",
+      "expo-localization"
     ],
     "experiments": {
       "reactCompiler": true

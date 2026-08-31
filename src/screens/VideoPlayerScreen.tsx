@@ -9,6 +9,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, type } from '../theme';
 import { useScript } from '../state/ScriptContext';
+import { useTranslation } from '../i18n';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VideoPlayer'>;
 
@@ -16,6 +17,7 @@ export default function VideoPlayerScreen({ navigation, route }: Props) {
   const { uri, assetId } = route.params;
   const insets = useSafeAreaInsets();
   const { removeVideoFromCurrentScript } = useScript();
+  const { t } = useTranslation();
 
   const player = useVideoPlayer(uri, (p) => {
     p.play();
@@ -48,7 +50,7 @@ export default function VideoPlayerScreen({ navigation, route }: Props) {
           <Pressable style={styles.iconButton} onPress={() => navigation.goBack()} hitSlop={8}>
             <ArrowLeft size={18} color={colors.textPrimary} strokeWidth={2} />
           </Pressable>
-          <Text style={[type.title, styles.topTitle]}>Video</Text>
+          <Text style={[type.title, styles.topTitle]}>{t('videoPlayer.title')}</Text>
           <Pressable style={styles.iconButton} onPress={handleDelete} hitSlop={8}>
             <Trash2 size={18} color={colors.record} strokeWidth={2} />
           </Pressable>

@@ -21,6 +21,7 @@ import { colors, radii, type } from '../theme';
 import { useScript } from '../state/ScriptContext';
 import TeleprompterOverlay, { type TeleprompterHandle } from '../components/TeleprompterOverlay';
 import SettingsSheet from '../components/SettingsSheet';
+import { useTranslation } from '../i18n';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Camera'>;
 
@@ -34,6 +35,7 @@ export default function CameraScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { script, speed, setSpeed, fontSize, setFontSize, saveScript, addVideoToCurrentScript } =
     useScript();
+  const { t } = useTranslation();
 
   const { hasPermission: hasCameraPermission, requestPermission: requestCameraPermission } =
     useCameraPermission();
@@ -171,9 +173,9 @@ export default function CameraScreen({ navigation }: Props) {
 
       {!permissionsGranted && (
         <View style={[StyleSheet.absoluteFill, styles.permissionOverlay]}>
-          <Text style={[type.title, styles.permissionTitle]}>Permite el acceso</Text>
+          <Text style={[type.title, styles.permissionTitle]}>{t('camera.permissionTitle')}</Text>
           <Text style={[type.bodyRegular, styles.permissionBody]}>
-            Pauta necesita tu cámara y micrófono para grabar el video.
+            {t('camera.permissionBody')}
           </Text>
           <Pressable
             style={styles.permissionButton}
@@ -182,7 +184,9 @@ export default function CameraScreen({ navigation }: Props) {
               requestMicPermission();
             }}
           >
-            <Text style={[type.title, styles.permissionButtonText]}>Permitir acceso</Text>
+            <Text style={[type.title, styles.permissionButtonText]}>
+              {t('camera.permissionButton')}
+            </Text>
           </Pressable>
         </View>
       )}
@@ -200,7 +204,7 @@ export default function CameraScreen({ navigation }: Props) {
       <View style={[styles.statusPill, { top: insets.top + 14 }]}>
         {isRecording && <View style={styles.recDot} />}
         <Text style={styles.statusText}>
-          {isRecording ? formatDuration(seconds) : 'Toque para grabar'}
+          {isRecording ? formatDuration(seconds) : t('camera.tapToRecord')}
         </Text>
       </View>
 

@@ -7,11 +7,13 @@ import type { RootStackParamList } from '../navigation/types';
 import { colors, spacing, type } from '../theme';
 import { useScript, type ScriptEntry } from '../state/ScriptContext';
 import RecentScriptCard from '../components/RecentScriptCard';
+import { useTranslation } from '../i18n';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AllScripts'>;
 
 export default function AllScriptsScreen({ navigation }: Props) {
   const { scripts, openScript, deleteScript } = useScript();
+  const { t } = useTranslation();
 
   const handleOpen = (item: ScriptEntry) => {
     openScript(item);
@@ -24,7 +26,7 @@ export default function AllScriptsScreen({ navigation }: Props) {
         <Pressable style={styles.backButton} onPress={() => navigation.goBack()} hitSlop={8}>
           <ArrowLeft size={18} color={colors.textPrimary} strokeWidth={2} />
         </Pressable>
-        <Text style={[type.title, styles.topTitle]}>Todos los guiones</Text>
+        <Text style={[type.title, styles.topTitle]}>{t('allScripts.title')}</Text>
       </View>
 
       <FlatList
@@ -39,7 +41,7 @@ export default function AllScriptsScreen({ navigation }: Props) {
           />
         )}
         ListEmptyComponent={
-          <Text style={[type.bodyRegular, styles.empty]}>Todavía no tienes guiones guardados.</Text>
+          <Text style={[type.bodyRegular, styles.empty]}>{t('allScripts.empty')}</Text>
         }
       />
     </SafeAreaView>

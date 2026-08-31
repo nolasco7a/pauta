@@ -17,6 +17,7 @@ import {
 
 import RootNavigator from './src/navigation/RootNavigator';
 import { ScriptProvider } from './src/state/ScriptContext';
+import { LocaleProvider } from './src/i18n';
 import { colors } from './src/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -45,14 +46,16 @@ export default function App() {
   return (
     <GestureHandlerRootView style={styles.flex} onLayout={onLayoutRootView}>
       <SafeAreaProvider>
-        <ScriptProvider>
-          <BottomSheetModalProvider>
-            <View style={styles.flex}>
-              <StatusBar style="light" />
-              <RootNavigator />
-            </View>
-          </BottomSheetModalProvider>
-        </ScriptProvider>
+        <LocaleProvider>
+          <ScriptProvider>
+            <BottomSheetModalProvider>
+              <View style={styles.flex}>
+                <StatusBar style="light" />
+                <RootNavigator />
+              </View>
+            </BottomSheetModalProvider>
+          </ScriptProvider>
+        </LocaleProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

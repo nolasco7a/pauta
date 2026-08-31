@@ -58,7 +58,9 @@ export function ScriptProvider({ children }: { children: React.ReactNode }) {
       const existing = scripts.find((s) => s.id === id);
       const entry: ScriptEntry = {
         id,
-        title: title.trim() || 'Nuevo guion',
+        // Sin traducir acá a propósito: un título vacío se guarda vacío, y la pantalla
+        // que lo muestra resuelve el placeholder según el idioma activo en ese momento.
+        title: title.trim(),
         body: script,
         videos: newVideo ? [...(existing?.videos ?? []), newVideo] : (existing?.videos ?? []),
         updatedAt: Date.now(),

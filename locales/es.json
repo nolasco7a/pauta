@@ -1,0 +1,64 @@
+{
+  "common": {
+    "cancel": "Cancelar",
+    "delete": "Borrar"
+  },
+  "dashboard": {
+    "heroTitle": "Crea tu próximo video",
+    "heroSubtitle": "Escribe el guion, ajusta el ritmo del teleprompter y graba sin distracciones.",
+    "startProject": "Iniciar Proyecto",
+    "recentScripts": "Guiones recientes",
+    "seeAll": "Ver todos"
+  },
+  "allScripts": {
+    "title": "Todos los guiones",
+    "empty": "Todavía no tienes guiones guardados."
+  },
+  "scriptCard": {
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "daysAgo": "Hace %{count} días",
+    "videoCount": {
+      "one": "%{count} video",
+      "other": "%{count} videos"
+    },
+    "deleteTitle": "¿Borrar guion?",
+    "deleteMessage": "Se eliminará \"%{title}\". Los videos ya grabados no se tocan."
+  },
+  "scriptEditor": {
+    "titlePlaceholder": "Nuevo guion",
+    "scriptLabel": "Guion",
+    "scriptPlaceholder": "Escribe o pega aquí el texto que quieres leer en cámara…",
+    "wordCount": {
+      "one": "%{count} palabra",
+      "other": "%{count} palabras"
+    },
+    "readingTime": "~%{count} seg de lectura",
+    "recordedVideos": {
+      "one": "Video grabado (%{count})",
+      "other": "Videos grabados (%{count})"
+    },
+    "videoLabel": "Video %{index}",
+    "save": "Guardar",
+    "record": "Grabar"
+  },
+  "camera": {
+    "permissionTitle": "Permite el acceso",
+    "permissionBody": "Pauta necesita tu cámara y micrófono para grabar el video.",
+    "permissionButton": "Permitir acceso",
+    "tapToRecord": "Toque para grabar"
+  },
+  "settingsSheet": {
+    "title": "Ajustes de teleprompter",
+    "speed": "Velocidad",
+    "slow": "Lento",
+    "fast": "Rápido",
+    "textSize": "Tamaño de texto"
+  },
+  "videoPlayer": {
+    "title": "Video"
+  },
+  "teleprompter": {
+    "placeholder": "Escribe tu guion para verlo aquí…"
+  }
+}

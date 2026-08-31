@@ -12,6 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Pause, Play, RotateCcw } from 'lucide-react-native';
 import { colors } from '../theme';
+import { useTranslation } from '../i18n';
 
 export type TeleprompterHandle = {
   play: () => void;
@@ -40,6 +41,7 @@ const TeleprompterOverlay = forwardRef<TeleprompterHandle, Props>(function Telep
   { script, speed, fontSize, accentColor = colors.accent, height = 200 },
   ref
 ) {
+  const { t } = useTranslation();
   const [bandWidth, setBandWidth] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -138,7 +140,7 @@ const TeleprompterOverlay = forwardRef<TeleprompterHandle, Props>(function Telep
     transform: [{ translateY: translateY.value }],
   }));
 
-  const displayText = script.trim().length > 0 ? script : 'Escribe tu guion para verlo aquí…';
+  const displayText = script.trim().length > 0 ? script : t('teleprompter.placeholder');
 
   return (
     <View style={[styles.band, { height }]} onLayout={onBandLayout}>

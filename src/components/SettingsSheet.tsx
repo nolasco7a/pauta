@@ -4,6 +4,7 @@ import { BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
 import { ChevronRight, FileText, Gauge, Type } from 'lucide-react-native';
 import { colors, radii, type } from '../theme';
 import Slider from './Slider';
+import { useTranslation } from '../i18n';
 
 type FontSize = 'S' | 'M' | 'L';
 
@@ -20,6 +21,7 @@ const SPEED_MULTIPLIER_MAX = 3;
 
 const SettingsSheet = forwardRef<BottomSheetModal, Props>(
   ({ speed, onSpeedChange, fontSize, onFontSizeChange, setIsOpen }, ref) => {
+    const { t } = useTranslation();
     const multiplier = SPEED_MULTIPLIER_MIN + speed * (SPEED_MULTIPLIER_MAX - SPEED_MULTIPLIER_MIN);
 
     const callbackIsOpen = useCallback((value: number) => {
@@ -39,14 +41,14 @@ const SettingsSheet = forwardRef<BottomSheetModal, Props>(
         onChange={(value) => callbackIsOpen(value)}
       >
         <BottomSheetView style={styles.content}>
-          <Text style={[type.title, styles.title]}>Ajustes de teleprompter</Text>
+          <Text style={[type.title, styles.title]}>{t('settingsSheet.title')}</Text>
 
           {/* Velocidad */}
           <View style={styles.row}>
             <View style={styles.rowHeader}>
               <View style={styles.rowLabel}>
                 <Gauge size={15} color={colors.textSecondary} strokeWidth={2} />
-                <Text style={[type.body, styles.rowLabelText]}>Velocidad</Text>
+                <Text style={[type.body, styles.rowLabelText]}>{t('settingsSheet.speed')}</Text>
               </View>
               <View style={styles.valuePill}>
                 <Text style={styles.valuePillText}>{multiplier.toFixed(1)}x</Text>
@@ -56,8 +58,8 @@ const SettingsSheet = forwardRef<BottomSheetModal, Props>(
             <Slider value={speed} onChange={onSpeedChange} />
 
             <View style={styles.sliderCaptions}>
-              <Text style={styles.captionText}>Lento</Text>
-              <Text style={styles.captionText}>Rápido</Text>
+              <Text style={styles.captionText}>{t('settingsSheet.slow')}</Text>
+              <Text style={styles.captionText}>{t('settingsSheet.fast')}</Text>
             </View>
           </View>
 
@@ -66,7 +68,7 @@ const SettingsSheet = forwardRef<BottomSheetModal, Props>(
             <View style={styles.rowHeader}>
               <View style={styles.rowLabel}>
                 <Type size={15} color={colors.textSecondary} strokeWidth={2} />
-                <Text style={[type.body, styles.rowLabelText]}>Tamaño de texto</Text>
+                <Text style={[type.body, styles.rowLabelText]}>{t('settingsSheet.textSize')}</Text>
               </View>
               <View style={styles.segmented}>
                 {(['S', 'M', 'L'] as FontSize[]).map((size) => (

@@ -19,6 +19,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, radii, spacing, type } from '../theme';
 import { useScript } from '../state/ScriptContext';
+import { useTranslation } from '../i18n';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ScriptEditor'>;
 
@@ -27,6 +28,7 @@ const WORDS_PER_MINUTE = 140; // ritmo de lectura promedio, usado para estimar d
 export default function ScriptEditorScreen({ navigation }: Props) {
   const { title, setTitle, script, setScript, saveScript, currentVideos, removeVideoFromCurrentScript } =
     useScript();
+  const { t } = useTranslation();
 
   // Al volver a esta pantalla, purga tags cuya copia local ya no existe (p. ej. se limpió
   // el almacenamiento). Es una comprobación de archivo síncrona, no toca Fotos ni permisos.
@@ -80,7 +82,7 @@ export default function ScriptEditorScreen({ navigation }: Props) {
           style={[type.title, styles.topTitle]}
           value={title}
           onChangeText={setTitle}
-          placeholder="Nuevo guion"
+          placeholder={t('scriptEditor.titlePlaceholder')}
           placeholderTextColor={colors.textTertiary}
           returnKeyType="done"
         />
@@ -98,14 +100,14 @@ export default function ScriptEditorScreen({ navigation }: Props) {
           keyboardDismissMode="on-drag"
         >
           <Pressable style={styles.flex} onPress={Keyboard.dismiss}>
-            <Text style={[type.label, styles.label]}>Guion</Text>
+            <Text style={[type.label, styles.label]}>{t('scriptEditor.scriptLabel')}</Text>
             <TextInput
               style={styles.input}
               value={script}
               onChangeText={setScript}
               multiline
               autoFocus
-              placeholder="Escribe o pega aquí el texto que quieres leer en cámara…"
+              placeholder={t('scriptEditor.scriptPlaceholder')}
               placeholderTextColor={colors.textTertiary}
               textAlignVertical="top"
               scrollEnabled={false}
@@ -116,7 +118,7 @@ export default function ScriptEditorScreen({ navigation }: Props) {
         {currentVideos.length > 0 && (
           <View style={styles.videosSection}>
             <Text style={[type.label, styles.videosLabel]}>
-              Videos grabados ({currentVideos.length})
+              {t('scriptEditor.recordedVideos', { count: currentVideos.length })}
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.videosRow}>
               {currentVideos.map((video, index) => (
@@ -126,7 +128,9 @@ export default function ScriptEditorScreen({ navigation }: Props) {
                     onPress={() => navigation.navigate('VideoPlayer', video)}
                   >
                     <VideoIcon size={14} color={colors.textSecondary} strokeWidth={2} />
-                    <Text style={styles.videoChipText}>Video {index + 1}</Text>
+                    <Text style={styles.videoChipText}>
+                      {t('scriptEditor.videoLabel', { index: index + 1 })}
+                    </Text>
                   </Pressable>
                   <Pressable
                     style={styles.videoChipDelete}
@@ -144,8 +148,12 @@ export default function ScriptEditorScreen({ navigation }: Props) {
         {/* Meta + CTA */}
         <View style={styles.footer}>
           <View style={styles.metaRow}>
-            <Text style={[type.caption, styles.metaText]}>{wordCount} palabras</Text>
-            <Text style={[type.caption, styles.metaText]}>~{seconds} seg de lectura</Text>
+            <Text style={[type.caption, styles.metaText]}>
+              {t('scriptEditor.wordCount', { count: wordCount })}
+            </Text>
+            <Text style={[type.caption, styles.metaText]}>
+              {t('scriptEditor.readingTime', { count: seconds })}
+            </Text>
           </View>
 
           <View style={styles.actionsRow}>
@@ -159,7 +167,7 @@ export default function ScriptEditorScreen({ navigation }: Props) {
               onPress={handleSave}
             >
               <Save size={17} color={colors.textPrimary} strokeWidth={2.2} />
-              <Text style={[type.title, styles.saveButtonText]}>Guardar</Text>
+              <Text style={[type.title, styles.saveButtonText]}>{t('scriptEditor.save')}</Text>
             </Pressable>
 
             <Pressable
@@ -172,7 +180,7 @@ export default function ScriptEditorScreen({ navigation }: Props) {
               onPress={() => navigation.navigate('Camera')}
             >
               <VideoIcon size={19} color={colors.accentText} strokeWidth={2.2} />
-              <Text style={[type.title, styles.ctaText]}>Grabar</Text>
+              <Text style={[type.title, styles.ctaText]}>{t('scriptEditor.record')}</Text>
             </Pressable>
           </View>
         </View>
