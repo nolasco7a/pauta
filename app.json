@@ -7,24 +7,30 @@
     "icon": "./assets/images/icon.png",
     "scheme": "pauta",
     "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
     "ios": {
-      "icon": "./assets/expo.icon"
+      "bundleIdentifier": "com.allanmejianolasco.pauta",
+      "icon": "./assets/expo.icon",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Pauta necesita acceso a la cámara para grabar tus videos.",
+        "NSMicrophoneUsageDescription": "Pauta necesita acceso al micrófono para grabar el audio de tus videos."
+      }
     },
     "android": {
+      "package": "com.allanmejianolasco.pauta",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
-    },
-    "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO"
+      ]
     },
     "plugins": [
-      "expo-router",
       [
         "expo-splash-screen",
         {
@@ -32,10 +38,25 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      [
+        "expo-dev-client",
+        {
+          "addGeneratedScheme": false
+        }
+      ],
+      "expo-sqlite",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Pauta necesita acceso a tu galería para reproducir los videos que grabaste.",
+          "savePhotosPermission": "Pauta necesita guardar los videos grabados en tu galería."
+        }
+      ],
+      "./plugins/withGestureHandlerCycleFix",
+      "expo-video"
     ],
     "experiments": {
-      "typedRoutes": true,
       "reactCompiler": true
     }
   }
