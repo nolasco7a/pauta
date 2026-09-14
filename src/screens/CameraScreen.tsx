@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Asset, requestPermissionsAsync } from 'expo-media-library';
 import { File, Paths } from 'expo-file-system';
 import {
   Camera,
   type CameraRef,
-  CommonResolutions,
   useCameraDevice,
   useCameraPermission,
   useMicrophonePermission,
@@ -14,13 +14,22 @@ import {
   type Recorder,
 } from 'react-native-vision-camera';
 import { BottomSheetModalProvider, type BottomSheetModal } from '@gorhom/bottom-sheet';
-import { SlidersHorizontal, SwitchCamera, X } from 'lucide-react-native';
+import {
+  Aperture,
+  Flashlight,
+  FlashlightOff,
+  SlidersHorizontal,
+  SwitchCamera,
+  X,
+} from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, radii, type } from '../theme';
 import { useScript } from '../state/ScriptContext';
 import TeleprompterOverlay, { type TeleprompterHandle } from '../components/TeleprompterOverlay';
 import SettingsSheet from '../components/SettingsSheet';
+import CameraSettingsSheet from '../components/CameraSettingsSheet';
+import { CAMERA_QUALITY_PRESETS } from '../state/cameraQuality';
 import { useTranslation } from '../i18n';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Camera'>;
@@ -33,8 +42,23 @@ function formatDuration(totalSeconds: number) {
 
 export default function CameraScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { script, speed, setSpeed, fontSize, setFontSize, saveScript, addVideoToCurrentScript } =
-    useScript();
+  const {
+    script,
+    speed,
+    setSpeed,
+    fontSize,
+    setFontSize,
+    cameraQuality,
+    setCameraQuality,
+    stabilization,
+    setStabilization,
+    exposureNormalized,
+    setExposureNormalized,
+    lowLightBoost,
+    setLowLightBoost,
+    saveScript,
+    addVideoToCurrentScript,
+  } = useScript();
   const { t } = useTranslation();
 
   const { hasPermission: hasCameraPermission, requestPermission: requestCameraPermission } =
@@ -43,21 +67,44 @@ export default function CameraScreen({ navigation }: Props) {
     useMicrophonePermission();
 
   const [position, setPosition] = useState<'front' | 'back'>('front');
+  const [torchOn, setTorchOn] = useState(false);
   const device = useCameraDevice(position);
+  const qualityPreset = CAMERA_QUALITY_PRESETS[cameraQuality];
   const videoOutput = useVideoOutput({
-    targetResolution: CommonResolutions.FHD_16_9,
+    targetResolution: qualityPreset.resolution,
+    targetBitRate: qualityPreset.bitRate,
     enableAudio: true,
   });
+
+  const supportsExposure = device?.supportsExposureBias ?? false;
+  const exposureBias =
+    device && supportsExposure
+      ? device.minExposureBias + exposureNormalized * (device.maxExposureBias - device.minExposureBias)
+      : undefined;
+  const supportsLowLightBoost = device?.supportsLowLightBoost ?? false;
 
   const cameraRef = useRef<CameraRef>(null);
   const recorderRef = useRef<Recorder | null>(null);
   const sheetRef = useRef<BottomSheetModal>(null);
+  const cameraSettingsSheetRef = useRef<BottomSheetModal>(null);
   const teleprompterRef = useRef<TeleprompterHandle>(null);
 
   const [isRecording, setIsRecording] = useState(false);
   const [isSheetSettingsOpen, setIsSheetSettingsOpen] = useState(false)
+  const [isCameraSettingsOpen, setIsCameraSettingsOpen] = useState(false);
+  const anySheetOpen = isSheetSettingsOpen || isCameraSettingsOpen;
   const [seconds, setSeconds] = useState(0);
   const secondsRef = useRef(0);
+
+  // Con un sheet de ajustes abierto, el teleprompter (sobre todo el de camara, mas alto)
+  // se monta encima de sus propios controles — lo desvanecemos mientras tanto.
+  const teleprompterOpacity = useSharedValue(1);
+  useEffect(() => {
+    teleprompterOpacity.value = withTiming(anySheetOpen ? 0 : 1, { duration: 200 });
+  }, [anySheetOpen, teleprompterOpacity]);
+  const teleprompterAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: teleprompterOpacity.value,
+  }));
 
   useEffect(() => {
     if (!hasCameraPermission) requestCameraPermission();
@@ -153,6 +200,12 @@ export default function CameraScreen({ navigation }: Props) {
       ? sheetRef.current?.dismiss()
       : sheetRef.current?.present()
   }
+  const handleOpenCameraSettings = () => {
+    isCameraSettingsOpen
+      ? cameraSettingsSheetRef.current?.dismiss()
+      : cameraSettingsSheetRef.current?.present()
+  }
+  const handleToggleTorch = () => setTorchOn((v) => !v);
 
   const permissionsGranted = hasCameraPermission && hasMicPermission;
 
@@ -166,6 +219,11 @@ export default function CameraScreen({ navigation }: Props) {
           device={device}
           isActive={true}
           outputs={videoOutput ? [videoOutput] : []}
+          enableNativeZoomGesture
+          torchMode={torchOn ? 'on' : 'off'}
+          exposure={exposureBias}
+          enableLowLightBoost={supportsLowLightBoost && lowLightBoost}
+          constraints={[{ videoStabilizationMode: stabilization }]}
         />
       ) : (
         <View style={[StyleSheet.absoluteFill, styles.fallback]} />
@@ -209,29 +267,61 @@ export default function CameraScreen({ navigation }: Props) {
       </View>
 
       {/* Teleprompter */}
-      <View style={[styles.teleprompterWrap, { top: insets.top + 68 }]}>
+      <Animated.View
+        style={[styles.teleprompterWrap, teleprompterAnimatedStyle, { top: insets.top + 68 }]}
+        pointerEvents={anySheetOpen ? 'none' : 'auto'}
+      >
         <TeleprompterOverlay
           ref={teleprompterRef}
           script={script}
           speed={speed}
           fontSize={fontSize}
         />
-      </View>
+      </Animated.View>
 
       {/* Controles inferiores */}
       <View style={[styles.controls, { paddingBottom: insets.bottom + 22 }]}>
-        <Pressable style={styles.controlButton} onPress={handleOpenSettings} hitSlop={8}>
-          <SlidersHorizontal size={20} color={colors.textPrimary} strokeWidth={2} />
-          <View style={styles.settingsDot} />
+        <View style={styles.controlGroup}>
+          <Pressable style={styles.controlButton} onPress={handleOpenSettings} hitSlop={8}>
+            <SlidersHorizontal size={20} color={colors.textPrimary} strokeWidth={2} />
+            <View style={styles.settingsDot} />
+          </Pressable>
+
+          <Pressable style={styles.controlButton} onPress={handleOpenCameraSettings} hitSlop={8}>
+            <Aperture size={20} color={colors.textPrimary} strokeWidth={2} />
+          </Pressable>
+        </View>
+
+        <Pressable
+          style={[
+            styles.recordOuterBase,
+            anySheetOpen ? styles.recordOuterDisabled : styles.recordOuterEnabled,
+          ]}
+          onPress={handleToggleRecord}
+          disabled={anySheetOpen}
+        >
+          <View
+            style={[
+              styles.recordInnerBase,
+              anySheetOpen ? styles.recordInnerDisabled : styles.recordInnerEnabled,
+              isRecording && styles.recordInnerActive,
+            ]}
+          />
         </Pressable>
 
-        <Pressable style={[styles.recordOuterBase, isSheetSettingsOpen ? styles.recordOuterDisabled : styles.recordOuterEnabled]} onPress={handleToggleRecord} disabled={isSheetSettingsOpen}>
-          <View style={[styles.recordInnerBase,isSheetSettingsOpen ? styles.recordInnerDisabled : styles.recordInnerEnabled , isRecording && styles.recordInnerActive]} />
-        </Pressable>
+        <View style={styles.controlGroup}>
+          <Pressable style={styles.controlButton} onPress={handleFlip} hitSlop={8}>
+            <SwitchCamera size={20} color={colors.textPrimary} strokeWidth={2} />
+          </Pressable>
 
-        <Pressable style={styles.controlButton} onPress={handleFlip} hitSlop={8}>
-          <SwitchCamera size={20} color={colors.textPrimary} strokeWidth={2} />
-        </Pressable>
+          <Pressable style={styles.controlButton} onPress={handleToggleTorch} hitSlop={8}>
+            {torchOn ? (
+              <Flashlight size={20} color={colors.accent} strokeWidth={2} />
+            ) : (
+              <FlashlightOff size={20} color={colors.textPrimary} strokeWidth={2} />
+            )}
+          </Pressable>
+        </View>
       </View>
 
       <SettingsSheet
@@ -241,6 +331,21 @@ export default function CameraScreen({ navigation }: Props) {
           fontSize={fontSize}
           onFontSizeChange={setFontSize}
           setIsOpen={setIsSheetSettingsOpen}
+      />
+
+      <CameraSettingsSheet
+        ref={cameraSettingsSheetRef}
+        quality={cameraQuality}
+        onQualityChange={setCameraQuality}
+        stabilization={stabilization}
+        onStabilizationChange={setStabilization}
+        exposureNormalized={exposureNormalized}
+        onExposureChange={setExposureNormalized}
+        supportsExposure={supportsExposure}
+        lowLightBoost={lowLightBoost}
+        onLowLightBoostChange={setLowLightBoost}
+        supportsLowLightBoost={supportsLowLightBoost}
+        setIsOpen={setIsCameraSettingsOpen}
       />
     </View>
     </BottomSheetModalProvider>
@@ -279,6 +384,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   closeButton: { position: 'absolute', left: 16, zIndex: 3 },
+  controlGroup: { flexDirection: 'row', gap: 10 },
   controlButton: {
     position: 'relative',
     width: 52,

@@ -16,8 +16,9 @@ type Props = {
   setIsOpen: (value: boolean) => void
 };
 
-const SPEED_MULTIPLIER_MIN = 0.5;
-const SPEED_MULTIPLIER_MAX = 3;
+// Coincide con la formula real de TeleprompterOverlay: speed=0.5 (centro) siempre es 1x.
+const SPEED_MULTIPLIER_MIN = 0;
+const SPEED_MULTIPLIER_MAX = 2;
 
 const SettingsSheet = forwardRef<BottomSheetModal, Props>(
   ({ speed, onSpeedChange, fontSize, onFontSizeChange, setIsOpen }, ref) => {

@@ -41,15 +41,17 @@ export default function DashboardScreen({ navigation }: Props) {
 
       {/* Hero */}
       <View style={styles.hero}>
-        <View style={styles.iconBadge}>
-          <Video size={32} color={colors.accent} strokeWidth={1.75} />
-        </View>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 18}}>
+          <View style={styles.iconBadge}>
+            <Video size={32} color={colors.accent} strokeWidth={1.75} />
+          </View>
 
-        <View style={styles.heroCopy}>
-          <Text style={[type.display, styles.heroTitle]}>{t('dashboard.heroTitle')}</Text>
-          <Text style={[type.bodyRegular, styles.heroSubtitle]}>
-            {t('dashboard.heroSubtitle')}
-          </Text>
+          <View style={styles.heroCopy}>
+            <Text style={[type.display, styles.heroTitle]}>{t('dashboard.heroTitle')}</Text>
+            <Text style={[type.bodyRegular, styles.heroSubtitle]}>
+              {t('dashboard.heroSubtitle')}
+            </Text>
+          </View>
         </View>
 
         <Pressable
@@ -111,11 +113,11 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   hero: {
-    flex: 1,
-    alignItems: 'center',
+    minHeight: 320,
     justifyContent: 'center',
-    gap: 26,
-    paddingHorizontal: 34,
+    gap: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 24
   },
   iconBadge: {
     width: 92,
@@ -127,9 +129,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
-  heroCopy: { alignItems: 'center', gap: 8 },
-  heroTitle: { color: colors.textPrimary, textAlign: 'center' },
-  heroSubtitle: { color: colors.textSecondary, textAlign: 'center', lineHeight: 21 },
+  heroCopy: { gap: 8, flexShrink: 1 },
+  heroTitle: { color: colors.textPrimary },
+  heroSubtitle: { color: colors.textSecondary},
   cta: {
     marginTop: 6,
     flexDirection: 'row',
@@ -148,7 +150,7 @@ const styles = StyleSheet.create({
   },
   ctaPressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
   ctaText: { color: colors.accentText },
-  recentSection: { paddingHorizontal: spacing.xl, paddingBottom: spacing.lg, maxHeight: 220 },
+  recentSection: { paddingHorizontal: spacing.xl, paddingBottom: spacing.lg},
   recentHeader: {
     flexDirection: 'row',
     alignItems: 'center',

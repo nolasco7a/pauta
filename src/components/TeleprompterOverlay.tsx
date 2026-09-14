@@ -29,8 +29,9 @@ type Props = {
 };
 
 const FONT_SIZES: Record<Props['fontSize'], number> = { S: 16, M: 19, L: 23 };
-const MIN_PX_PER_SEC = 1;
-const MAX_PX_PER_SEC = 100;
+// ponytail: "1x" = ritmo de lectura comodo, valor de partida ajustable a ojo. speed=0.5
+// (centro del slider) siempre equivale a 1x, sin importar este numero.
+const BASE_PX_PER_SEC = 25;
 
 function clamp(v: number, min: number, max: number) {
   'worklet';
@@ -48,7 +49,8 @@ const TeleprompterOverlay = forwardRef<TeleprompterHandle, Props>(function Telep
   const translateY = useSharedValue(height);
   const isPlayingRef = useRef(false);
 
-  const pxPerSec = MIN_PX_PER_SEC + speed * (MAX_PX_PER_SEC - MIN_PX_PER_SEC);
+  // speed 0..1, con 0.5 = centro = 1x. El piso evita durationMs infinito al llegar a 0.
+  const pxPerSec = Math.max(1, speed * 2 * BASE_PX_PER_SEC);
   const pxPerSecRef = useRef(pxPerSec);
   pxPerSecRef.current = pxPerSec;
 
@@ -144,8 +146,6 @@ const TeleprompterOverlay = forwardRef<TeleprompterHandle, Props>(function Telep
 
   return (
     <View style={[styles.band, { height }]} onLayout={onBandLayout}>
-      <View style={[styles.indicator, { backgroundColor: accentColor }]} />
-
       <GestureDetector gesture={pan}>
         <View style={styles.clip}>
           <Animated.View
@@ -204,18 +204,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.overlayTeleprompter,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: 'rgba(255,255,255,0.10)',
     overflow: 'hidden',
-    borderRadius: 20,
-  },
-  indicator: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 3,
-    opacity: 0.85,
-    zIndex: 2,
+    borderRadius: 25,
   },
   clip: { flex: 1, overflow: 'hidden' },
   content: { position: 'absolute', paddingHorizontal: 30 },
@@ -224,16 +215,17 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     textAlign: 'center',
   },
-  fade: { position: 'absolute', left: 0, right: 0, height: 46 },
+  fade: { position: 'absolute', left: 0, right: 0, height: 100 },
   fadeTop: { top: 0 },
   fadeBottom: { bottom: 0 },
   controls: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 10,
+    right: 12,
     flexDirection: 'row',
     gap: 6,
     zIndex: 3,
+    opacity: 0.70,
   },
   controlButton: {
     width: 26,

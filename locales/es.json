@@ -55,6 +55,35 @@
     "fast": "Rápido",
     "textSize": "Tamaño de texto"
   },
+  "cameraSettingsSheet": {
+    "title": "Ajustes de cámara",
+    "quality": "Calidad",
+    "estimate": "Aprox. %{mb} MB por minuto grabado",
+    "presets": {
+      "saver": {
+        "label": "Ahorro de espacio",
+        "caption": "720p — para grabar mucho sin llenar el teléfono"
+      },
+      "balanced": {
+        "label": "Balanceado",
+        "caption": "1080p — buena calidad, tamaño moderado"
+      },
+      "max": {
+        "label": "Máxima calidad",
+        "caption": "4K — la mejor imagen, ocupa mucho más espacio"
+      }
+    },
+    "stabilization": "Estabilización",
+    "stabilizationModes": {
+      "off": "Apagada",
+      "standard": "Estándar",
+      "cinematic": "Cinemática"
+    },
+    "exposure": "Exposición",
+    "darker": "Más oscuro",
+    "brighter": "Más claro",
+    "lowLightBoost": "Modo noche"
+  },
   "videoPlayer": {
     "title": "Video"
   },

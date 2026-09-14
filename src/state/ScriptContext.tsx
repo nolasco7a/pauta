@@ -1,13 +1,33 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
   deleteScript as dbDeleteScript,
   getAllScripts,
+  getSetting,
+  setSetting,
   upsertScript,
   type ScriptEntry,
   type VideoRef,
 } from './db';
+import type { CameraQuality } from './cameraQuality';
 
 export type { ScriptEntry, VideoRef };
+
+export type StabilizationMode = 'off' | 'standard' | 'cinematic';
+
+const SETTING_SAVE_DEBOUNCE_MS = 400;
+
+// Como los guiones: persistido en el mismo sqlite local, nada de red ni backend.
+// El debounce evita escribir a disco en cada tick mientras se arrastra un slider.
+function usePersistedState<T>(key: string, initial: T): [T, (v: T) => void] {
+  const [value, setValue] = useState<T>(() => getSetting(key, initial));
+
+  useEffect(() => {
+    const id = setTimeout(() => setSetting(key, value), SETTING_SAVE_DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [key, value]);
+
+  return [value, setValue];
+}
 
 type ScriptContextValue = {
   title: string;
@@ -18,6 +38,14 @@ type ScriptContextValue = {
   setSpeed: (v: number) => void;
   fontSize: 'S' | 'M' | 'L';
   setFontSize: (v: 'S' | 'M' | 'L') => void;
+  cameraQuality: CameraQuality;
+  setCameraQuality: (v: CameraQuality) => void;
+  stabilization: StabilizationMode;
+  setStabilization: (v: StabilizationMode) => void;
+  exposureNormalized: number; // 0..1, 0.5 = neutral
+  setExposureNormalized: (v: number) => void;
+  lowLightBoost: boolean;
+  setLowLightBoost: (v: boolean) => void;
   scripts: ScriptEntry[];
   currentVideos: VideoRef[];
   startNewScript: () => void;
@@ -34,8 +62,18 @@ export function ScriptProvider({ children }: { children: React.ReactNode }) {
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [script, setScript] = useState('');
-  const [speed, setSpeed] = useState(0.5);
-  const [fontSize, setFontSize] = useState<'S' | 'M' | 'L'>('M');
+  const [speed, setSpeed] = usePersistedState('speed', 0.5);
+  const [fontSize, setFontSize] = usePersistedState<'S' | 'M' | 'L'>('fontSize', 'M');
+  const [cameraQuality, setCameraQuality] = usePersistedState<CameraQuality>(
+    'cameraQuality',
+    'balanced'
+  );
+  const [stabilization, setStabilization] = usePersistedState<StabilizationMode>(
+    'stabilization',
+    'standard'
+  );
+  const [exposureNormalized, setExposureNormalized] = usePersistedState('exposureNormalized', 0.5);
+  const [lowLightBoost, setLowLightBoost] = usePersistedState('lowLightBoost', false);
   const [scripts, setScripts] = useState<ScriptEntry[]>(() => getAllScripts());
 
   const startNewScript = useCallback(() => {
@@ -121,6 +159,14 @@ export function ScriptProvider({ children }: { children: React.ReactNode }) {
       setSpeed,
       fontSize,
       setFontSize,
+      cameraQuality,
+      setCameraQuality,
+      stabilization,
+      setStabilization,
+      exposureNormalized,
+      setExposureNormalized,
+      lowLightBoost,
+      setLowLightBoost,
       scripts,
       currentVideos,
       startNewScript,
@@ -135,6 +181,10 @@ export function ScriptProvider({ children }: { children: React.ReactNode }) {
       script,
       speed,
       fontSize,
+      cameraQuality,
+      stabilization,
+      exposureNormalized,
+      lowLightBoost,
       scripts,
       currentVideos,
       startNewScript,

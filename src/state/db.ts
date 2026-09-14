@@ -11,6 +11,10 @@ db.execSync(`
     videos TEXT NOT NULL DEFAULT '[]',
     updated_at INTEGER NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY NOT NULL,
+    value TEXT NOT NULL
+  );
 `);
 
 type ScriptRow = {
@@ -65,5 +69,26 @@ export function upsertScript(entry: ScriptEntry) {
     entry.body,
     JSON.stringify(entry.videos),
     entry.updatedAt
+  );
+}
+
+// Key-value genérico para ajustes (velocidad, calidad de cámara, etc.) — evita tener
+// que migrar el esquema cada vez que se agrega un ajuste nuevo.
+export function getSetting<T>(key: string, fallback: T): T {
+  const row = db.getFirstSync<{ value: string }>('SELECT value FROM settings WHERE key = ?', key);
+  if (!row) return fallback;
+  try {
+    return JSON.parse(row.value) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+export function setSetting(key: string, value: unknown) {
+  db.runSync(
+    `INSERT INTO settings (key, value) VALUES (?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    key,
+    JSON.stringify(value)
   );
 }

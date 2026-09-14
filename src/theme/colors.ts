@@ -27,7 +27,7 @@ export const colors = {
   // Overlays
   overlayDim: 'rgba(0,0,0,0.55)',
   overlayGlass: 'rgba(0,0,0,0.3)',
-  overlayTeleprompter: 'rgba(8,8,10,0.25)',
+  overlayTeleprompter: 'rgba(8,8,10,0.15)',
 } as const;
 
 export const accentOptions = ['#E7A94C', '#FF4438', '#5B8DEF', '#6FCF97'] as const;
