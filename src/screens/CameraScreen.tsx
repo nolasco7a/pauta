@@ -18,7 +18,7 @@ import {
   Aperture,
   Flashlight,
   FlashlightOff,
-  SlidersHorizontal,
+  ListEnd,
   SwitchCamera,
   X,
 } from 'lucide-react-native';
@@ -82,6 +82,7 @@ export default function CameraScreen({ navigation }: Props) {
       ? device.minExposureBias + exposureNormalized * (device.maxExposureBias - device.minExposureBias)
       : undefined;
   const supportsLowLightBoost = device?.supportsLowLightBoost ?? false;
+  const supportsTorch = device?.hasTorch ?? false;
 
   const cameraRef = useRef<CameraRef>(null);
   const recorderRef = useRef<Recorder | null>(null);
@@ -100,8 +101,8 @@ export default function CameraScreen({ navigation }: Props) {
   // se monta encima de sus propios controles — lo desvanecemos mientras tanto.
   const teleprompterOpacity = useSharedValue(1);
   useEffect(() => {
-    teleprompterOpacity.value = withTiming(anySheetOpen ? 0 : 1, { duration: 200 });
-  }, [anySheetOpen, teleprompterOpacity]);
+    teleprompterOpacity.value = withTiming(isCameraSettingsOpen ? 0 : 1, { duration: 200 });
+  }, [isCameraSettingsOpen, teleprompterOpacity]);
   const teleprompterAnimatedStyle = useAnimatedStyle(() => ({
     opacity: teleprompterOpacity.value,
   }));
@@ -192,20 +193,30 @@ export default function CameraScreen({ navigation }: Props) {
     }
   }, [isRecording, videoOutput, saveScript, addVideoToCurrentScript, navigation]);
 
-  const handleFlip = () => setPosition((p) => (p === 'front' ? 'back' : 'front'));
+  // Cambiar camara, flash o ajustes a mitad de una grabacion corta la grabacion sin
+  // guardar el video (o revienta con un error nativo) — se deshabilitan todos mientras
+  // isRecording es true, aunque el teleprompter en si no tenga ese problema, por coherencia.
+  const handleFlip = () => {
+    if (isRecording) return;
+    setPosition((p) => (p === 'front' ? 'back' : 'front'));
+  };
   const handleClose = () => navigation.goBack();
   const handleOpenSettings = () => {
-    // console.log("presionando toggle para mostrar sheet settings")
+    if (isRecording) return;
     isSheetSettingsOpen
       ? sheetRef.current?.dismiss()
       : sheetRef.current?.present()
   }
   const handleOpenCameraSettings = () => {
+    if (isRecording) return;
     isCameraSettingsOpen
       ? cameraSettingsSheetRef.current?.dismiss()
       : cameraSettingsSheetRef.current?.present()
   }
-  const handleToggleTorch = () => setTorchOn((v) => !v);
+  const handleToggleTorch = () => {
+    if (isRecording) return;
+    setTorchOn((v) => !v);
+  };
 
   const permissionsGranted = hasCameraPermission && hasMicPermission;
 
@@ -220,9 +231,9 @@ export default function CameraScreen({ navigation }: Props) {
           isActive={true}
           outputs={videoOutput ? [videoOutput] : []}
           enableNativeZoomGesture
-          torchMode={torchOn ? 'on' : 'off'}
+          torchMode={supportsTorch && torchOn ? 'on' : 'off'}
           exposure={exposureBias}
-          enableLowLightBoost={supportsLowLightBoost && lowLightBoost}
+          enableLowLightBoost={supportsLowLightBoost ? lowLightBoost : undefined}
           constraints={[{ videoStabilizationMode: stabilization }]}
         />
       ) : (
@@ -269,7 +280,7 @@ export default function CameraScreen({ navigation }: Props) {
       {/* Teleprompter */}
       <Animated.View
         style={[styles.teleprompterWrap, teleprompterAnimatedStyle, { top: insets.top + 68 }]}
-        pointerEvents={anySheetOpen ? 'none' : 'auto'}
+        pointerEvents={isCameraSettingsOpen ? 'none' : 'auto'}
       >
         <TeleprompterOverlay
           ref={teleprompterRef}
@@ -282,13 +293,24 @@ export default function CameraScreen({ navigation }: Props) {
       {/* Controles inferiores */}
       <View style={[styles.controls, { paddingBottom: insets.bottom + 22 }]}>
         <View style={styles.controlGroup}>
-          <Pressable style={styles.controlButton} onPress={handleOpenSettings} hitSlop={8}>
-            <SlidersHorizontal size={20} color={colors.textPrimary} strokeWidth={2} />
+          <Pressable
+            style={[styles.controlButton, isRecording && styles.controlButtonDisabled]}
+            onPress={handleOpenSettings}
+            disabled={isRecording}
+            hitSlop={8}
+          >
+            <ListEnd size={20} color={colors.textPrimary} strokeWidth={2} />
             <View style={styles.settingsDot} />
           </Pressable>
 
-          <Pressable style={styles.controlButton} onPress={handleOpenCameraSettings} hitSlop={8}>
-            <Aperture size={20} color={colors.textPrimary} strokeWidth={2} />
+          <Pressable
+            style={[styles.controlButton, isRecording && styles.controlButtonDisabled]}
+            onPress={handleOpenCameraSettings}
+            disabled={isRecording}
+            hitSlop={8}
+          >
+              <Aperture size={20} color={colors.textPrimary} strokeWidth={2} />
+              <View style={styles.settingsDot} />
           </Pressable>
         </View>
 
@@ -309,18 +331,30 @@ export default function CameraScreen({ navigation }: Props) {
           />
         </Pressable>
 
-        <View style={styles.controlGroup}>
-          <Pressable style={styles.controlButton} onPress={handleFlip} hitSlop={8}>
-            <SwitchCamera size={20} color={colors.textPrimary} strokeWidth={2} />
-          </Pressable>
-
-          <Pressable style={styles.controlButton} onPress={handleToggleTorch} hitSlop={8}>
-            {torchOn ? (
-              <Flashlight size={20} color={colors.accent} strokeWidth={2} />
-            ) : (
-              <FlashlightOff size={20} color={colors.textPrimary} strokeWidth={2} />
-            )}
-          </Pressable>
+          <View style={styles.controlGroup}>
+            <Pressable
+              style={[styles.controlButton, isRecording && styles.controlButtonDisabled]}
+              onPress={handleFlip}
+              disabled={isRecording}
+              hitSlop={8}
+            >
+              <SwitchCamera size={20} color={colors.textPrimary} strokeWidth={2} />
+            </Pressable>
+            <Pressable
+              style={[
+                styles.controlButton,
+                (!supportsTorch || isRecording) && styles.controlButtonDisabled,
+              ]}
+              onPress={handleToggleTorch}
+              disabled={!supportsTorch || isRecording}
+              hitSlop={8}
+            >
+              {supportsTorch && torchOn ? (
+                <Flashlight size={20} color={colors.accent} strokeWidth={2} />
+              ) : (
+                <FlashlightOff size={20} color={colors.textPrimary} strokeWidth={2} />
+              )}
+            </Pressable>
         </View>
       </View>
 
@@ -396,6 +430,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  controlButtonDisabled: { opacity: 0.35 },
   statusPill: {
     position: 'absolute',
     alignSelf: 'center',
