@@ -6,6 +6,7 @@ import DashboardScreen from '../screens/DashboardScreen';
 import ScriptEditorScreen from '../screens/ScriptEditorScreen';
 import CameraScreen from '../screens/CameraScreen';
 import AllScriptsScreen from '../screens/AllScriptsScreen';
+import AboutScreen from '../screens/AboutScreen';
 import VideoPlayerScreen from '../screens/VideoPlayerScreen';
 import { colors } from '../theme';
 
@@ -33,6 +34,7 @@ export default function RootNavigator() {
         <Stack.Screen name="Dashboard" component={DashboardScreen} />
         <Stack.Screen name="ScriptEditor" component={ScriptEditorScreen} />
         <Stack.Screen name="AllScripts" component={AllScriptsScreen} />
+        <Stack.Screen name="About" component={AboutScreen} />
         <Stack.Screen
           name="Camera"
           component={CameraScreen}

@@ -1,6 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Asset, requestPermissionsAsync } from 'expo-media-library';
 import { File, Paths } from 'expo-file-system';
@@ -20,7 +19,6 @@ import {
   FlashlightOff,
   ListEnd,
   SwitchCamera,
-  X,
 } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
@@ -39,6 +37,8 @@ function formatDuration(totalSeconds: number) {
   const s = Math.floor(totalSeconds % 60);
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
+
+const ZOOM_PRESETS = [0.5, 1, 1.5, 2] as const;
 
 export default function CameraScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
@@ -68,6 +68,13 @@ export default function CameraScreen({ navigation }: Props) {
 
   const [position, setPosition] = useState<'front' | 'back'>('front');
   const [torchOn, setTorchOn] = useState(false);
+  const [zoomFactor, setZoomFactor] = useState<number | null>(null);
+  // displayableZoomFactor / zoom es la conversión (constante por dispositivo) entre el "zoom"
+  // nativo de una cámara virtual multi-lente y el factor que ve el usuario (0.5x/1x/2x, etc).
+  // Solo se conoce una vez que el controller arranca, así que null = "todavía no medido".
+  const [zoomRange, setZoomRange] = useState<{ min: number; max: number; ratio: number } | null>(
+    null
+  );
   const device = useCameraDevice(position);
   const qualityPreset = CAMERA_QUALITY_PRESETS[cameraQuality];
   const videoOutput = useVideoOutput({
@@ -96,16 +103,6 @@ export default function CameraScreen({ navigation }: Props) {
   const anySheetOpen = isSheetSettingsOpen || isCameraSettingsOpen;
   const [seconds, setSeconds] = useState(0);
   const secondsRef = useRef(0);
-
-  // Con un sheet de ajustes abierto, el teleprompter (sobre todo el de camara, mas alto)
-  // se monta encima de sus propios controles — lo desvanecemos mientras tanto.
-  const teleprompterOpacity = useSharedValue(1);
-  useEffect(() => {
-    teleprompterOpacity.value = withTiming(isCameraSettingsOpen ? 0 : 1, { duration: 200 });
-  }, [isCameraSettingsOpen, teleprompterOpacity]);
-  const teleprompterAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: teleprompterOpacity.value,
-  }));
 
   useEffect(() => {
     if (!hasCameraPermission) requestCameraPermission();
@@ -199,20 +196,96 @@ export default function CameraScreen({ navigation }: Props) {
   const handleFlip = () => {
     if (isRecording) return;
     setPosition((p) => (p === 'front' ? 'back' : 'front'));
+    setZoomRange(null);
+    setZoomFactor(null);
   };
+  // onConfigured se dispara cada vez que la sesión reconecta un device (incluye el flip
+  // frontal/trasera) — a diferencia de onStarted, que solo ocurre una vez al activar la
+  // cámara. Se dispara antes de que el nuevo controller quede asignado al ref, así que se
+  // lee en el siguiente tick para evitar quedarnos con el controller del device anterior.
+  const handleCameraConfigured = () => {
+    setTimeout(() => {
+      try {
+        const controller = cameraRef.current?.controller;
+        if (controller && controller.zoom > 0) {
+          setZoomRange({
+            min: controller.minZoom,
+            max: controller.maxZoom,
+            ratio: controller.displayableZoomFactor / controller.zoom,
+          });
+        }
+      } catch (error) {
+        console.warn('No se pudo leer el rango de zoom de la cámara', error);
+      }
+    }, 0);
+  };
+  const handleZoomPreset = async (factor: number) => {
+    try {
+      const controller = cameraRef.current?.controller;
+      if (!controller || !zoomRange) return;
+      await controller.setZoom(factor / zoomRange.ratio);
+      setZoomFactor(factor);
+    } catch (error) {
+      console.warn('No se pudo aplicar el zoom', error);
+    }
+  };
+  // Antes de medir el rango real del dispositivo solo se ofrece 1x (el default), para no
+  // mostrar opciones que ese dispositivo podría no soportar.
+  const availableZoomPresets = useMemo(
+    () =>
+      zoomRange
+        ? ZOOM_PRESETS.filter(
+            (factor) =>
+              factor >= zoomRange.min * zoomRange.ratio - 0.05 &&
+              factor <= zoomRange.max * zoomRange.ratio + 0.05
+          )
+        : [1],
+    [zoomRange]
+  );
+
+  // El pinch nativo mueve el zoom directo en el controller, por fuera de React — no hay
+  // listener público para eso (solo addSubjectAreaChangedListener, para foco), así que se
+  // sondea el valor actual y se resalta el preset más cercano. ponytail: sondeo por falta
+  // de evento nativo; cambiar a listener si vision-camera lo expone más adelante.
+  useEffect(() => {
+    if (!zoomRange || availableZoomPresets.length < 2) return;
+    const id = setInterval(() => {
+      const controller = cameraRef.current?.controller;
+      if (!controller) return;
+      const displayable = controller.zoom * zoomRange.ratio;
+      const nearest = availableZoomPresets.reduce((closest, factor) =>
+        Math.abs(factor - displayable) < Math.abs(closest - displayable) ? factor : closest
+      );
+      setZoomFactor((current) => (current === nearest ? current : nearest));
+    }, 200);
+    return () => clearInterval(id);
+  }, [zoomRange, availableZoomPresets]);
+
   const handleClose = () => navigation.goBack();
+  // El sheet solo avisa "onChange" cuando termina su animación de apertura/cierre — si
+  // esperamos a eso, los controles que dependen de anySheetOpen (zoom, teleprompter) se
+  // quedan visibles encima del sheet mientras este sube. Se marca el estado de una vez, al
+  // disparar la acción, para que desaparezcan al instante junto con el toque del usuario.
   const handleOpenSettings = () => {
     if (isRecording) return;
-    isSheetSettingsOpen
-      ? sheetRef.current?.dismiss()
-      : sheetRef.current?.present()
-  }
+    if (isSheetSettingsOpen) {
+      sheetRef.current?.dismiss();
+      setIsSheetSettingsOpen(false);
+    } else {
+      sheetRef.current?.present();
+      setIsSheetSettingsOpen(true);
+    }
+  };
   const handleOpenCameraSettings = () => {
     if (isRecording) return;
-    isCameraSettingsOpen
-      ? cameraSettingsSheetRef.current?.dismiss()
-      : cameraSettingsSheetRef.current?.present()
-  }
+    if (isCameraSettingsOpen) {
+      cameraSettingsSheetRef.current?.dismiss();
+      setIsCameraSettingsOpen(false);
+    } else {
+      cameraSettingsSheetRef.current?.present();
+      setIsCameraSettingsOpen(true);
+    }
+  };
   const handleToggleTorch = () => {
     if (isRecording) return;
     setTorchOn((v) => !v);
@@ -231,6 +304,7 @@ export default function CameraScreen({ navigation }: Props) {
           isActive={true}
           outputs={videoOutput ? [videoOutput] : []}
           enableNativeZoomGesture
+          onConfigured={handleCameraConfigured}
           torchMode={supportsTorch && torchOn ? 'on' : 'off'}
           exposure={exposureBias}
           enableLowLightBoost={supportsLowLightBoost ? lowLightBoost : undefined}
@@ -260,38 +334,49 @@ export default function CameraScreen({ navigation }: Props) {
         </View>
       )}
 
-      {/* Cerrar */}
-      <Pressable
-        style={[styles.iconButton, styles.closeButton, { top: insets.top + 12 }]}
-        onPress={handleClose}
-        hitSlop={8}
-      >
-        <X size={16} color={colors.textPrimary} strokeWidth={2} />
-      </Pressable>
-
-      {/* Estado */}
-      <View style={[styles.statusPill, { top: insets.top + 14 }]}>
-        {isRecording && <View style={styles.recDot} />}
-        <Text style={styles.statusText}>
-          {isRecording ? formatDuration(seconds) : t('camera.tapToRecord')}
-        </Text>
-      </View>
-
-      {/* Teleprompter */}
-      <Animated.View
-        style={[styles.teleprompterWrap, teleprompterAnimatedStyle, { top: insets.top + 68 }]}
-        pointerEvents={isCameraSettingsOpen ? 'none' : 'auto'}
-      >
+      {/* Teleprompter: agrupa cierre, indicador de grabación y controles del teleprompter
+          en un solo panel arriba, pegado al inset superior — el cierre y el indicador se
+          mantienen accesibles aunque haya un sheet de ajustes abierto; solo el texto que
+          scrollea se oculta para no chocar visualmente con el sheet. */}
+      <View style={[styles.teleprompterWrap, { top: insets.top }]}>
         <TeleprompterOverlay
           ref={teleprompterRef}
           script={script}
           speed={speed}
           fontSize={fontSize}
+          onClose={handleClose}
+          isRecording={isRecording}
+          recordingLabel={formatDuration(seconds)}
+          contentHidden={isCameraSettingsOpen}
         />
-      </Animated.View>
-
+      </View>
+5678ighjfr
       {/* Controles inferiores */}
-      <View style={[styles.controls, { paddingBottom: insets.bottom + 22 }]}>
+      <View style={[styles.controlsWrap, { paddingBottom: insets.bottom + 22 }]}>
+        {/* Zoom */}
+        {availableZoomPresets.length > 1 && !anySheetOpen && (
+          <View style={styles.zoomRow}>
+            {availableZoomPresets.map((factor) => (
+              <Pressable
+                key={factor}
+                style={[styles.zoomPill, (zoomFactor ?? 1) === factor && styles.zoomPillActive]}
+                onPress={() => handleZoomPreset(factor)}
+                hitSlop={4}
+              >
+                <Text
+                  style={[
+                    styles.zoomPillText,
+                    (zoomFactor ?? 1) === factor && styles.zoomPillTextActive,
+                  ]}
+                >
+                  {factor}x
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        <View style={styles.controls}>
         <View style={styles.controlGroup}>
           <Pressable
             style={[styles.controlButton, isRecording && styles.controlButtonDisabled]}
@@ -356,6 +441,7 @@ export default function CameraScreen({ navigation }: Props) {
               )}
             </Pressable>
         </View>
+        </View>
       </View>
 
       <SettingsSheet
@@ -407,17 +493,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
   },
   permissionButtonText: { color: colors.accentText },
-  iconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.overlayGlass,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeButton: { position: 'absolute', left: 16, zIndex: 3 },
   controlGroup: { flexDirection: 'row', gap: 10 },
   controlButton: {
     position: 'relative',
@@ -431,40 +506,42 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   controlButtonDisabled: { opacity: 0.35 },
-  statusPill: {
-    position: 'absolute',
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    paddingVertical: 7,
-    paddingHorizontal: 14,
-    backgroundColor: colors.overlayGlass,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 999,
-    zIndex: 3,
-  },
-  recDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.record },
-  statusText: {
-    fontFamily: 'Manrope_700Bold',
-    fontSize: 10.5,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    color: colors.textSecondary,
-  },
   teleprompterWrap: { position: 'absolute', left: 0, right: 0, zIndex: 2 },
-  controls: {
+  controlsWrap: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
+    zIndex: 3,
+  },
+  zoomRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  zoomPill: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: radii.full,
+    backgroundColor: colors.overlayGlass,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  zoomPillActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  zoomPillText: {
+    fontFamily: 'Manrope_700Bold',
+    fontSize: 12,
+    color: colors.textPrimary,
+  },
+  zoomPillTextActive: { color: colors.accentText },
+  controls: {
     paddingHorizontal: 30,
-    paddingTop: 26,
+    paddingTop: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    zIndex: 3,
   },
   settingsDot: {
     position: 'absolute',

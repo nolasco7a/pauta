@@ -1,5 +1,5 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
+import { LayoutChangeEvent, Pressable, StyleSheet, Text, View, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -10,7 +10,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { Pause, Play, RotateCcw } from 'lucide-react-native';
+import { Pause, Play, RotateCcw, X } from 'lucide-react-native';
 import { colors } from '../theme';
 import { useTranslation } from '../i18n';
 
@@ -26,6 +26,12 @@ type Props = {
   fontSize: 'S' | 'M' | 'L';
   accentColor?: string;
   height?: number;
+  onClose: () => void;
+  isRecording: boolean;
+  recordingLabel: string;
+  // Con el sheet de ajustes de cámara abierto se oculta todo salvo el botón de cerrar,
+  // que se queda visible y usable para poder salir de la cámara sin cerrar el sheet antes.
+  minimized?: boolean;
 };
 
 const FONT_SIZES: Record<Props['fontSize'], number> = { S: 16, M: 19, L: 23 };
@@ -39,7 +45,17 @@ function clamp(v: number, min: number, max: number) {
 }
 
 const TeleprompterOverlay = forwardRef<TeleprompterHandle, Props>(function TeleprompterOverlay(
-  { script, speed, fontSize, accentColor = colors.accent, height = 200 },
+  {
+    script,
+    speed,
+    fontSize,
+    accentColor = colors.accent,
+    height = 240,
+    onClose,
+    isRecording,
+    recordingLabel,
+    minimized = false,
+  },
   ref
 ) {
   const { t } = useTranslation();
@@ -144,53 +160,82 @@ const TeleprompterOverlay = forwardRef<TeleprompterHandle, Props>(function Telep
 
   const displayText = script.trim().length > 0 ? script : t('teleprompter.placeholder');
 
+  const marginTopAndroid = Platform.OS === 'android' ? 12 : 'auto';
+
   return (
-    <View style={[styles.band, { height }]} onLayout={onBandLayout}>
-      <GestureDetector gesture={pan}>
-        <View style={styles.clip}>
-          <Animated.View
-            style={[styles.content, animatedStyle, { width: bandWidth || undefined }]}
-            onLayout={onContentLayout}
-          >
-            <Text
-              style={[
-                styles.text,
-                { fontSize: FONT_SIZES[fontSize], lineHeight: FONT_SIZES[fontSize] * 1.5 },
-              ]}
-            >
-              {displayText}
-            </Text>
-          </Animated.View>
-        </View>
-      </GestureDetector>
-
-      <LinearGradient
-        colors={[colors.overlayTeleprompter, 'transparent']}
-        style={[styles.fade, styles.fadeTop]}
-        pointerEvents="none"
-      />
-      <LinearGradient
-        colors={['transparent', colors.overlayTeleprompter]}
-        style={[styles.fade, styles.fadeBottom]}
-        pointerEvents="none"
-      />
-
-      <View style={styles.controls}>
-        <Pressable style={styles.controlButton} onPress={reset} hitSlop={8}>
-          <RotateCcw size={14} color={colors.textPrimary} strokeWidth={2} />
+    <View
+      style={[styles.band, { height, marginTop: marginTopAndroid }, minimized && styles.bandMinimized]}
+      onLayout={onBandLayout}
+      pointerEvents={minimized ? 'box-none' : 'auto'}
+    >
+      <View style={styles.header}>
+        <Pressable style={styles.closeButton} onPress={onClose} hitSlop={8}>
+          <X size={16} color={colors.textPrimary} strokeWidth={2} />
         </Pressable>
-        <Pressable
-          style={styles.controlButton}
-          onPress={() => (isPlaying ? pause() : play())}
-          hitSlop={8}
-        >
-          {isPlaying ? (
-            <Pause size={14} color={colors.textPrimary} strokeWidth={2} />
-          ) : (
-            <Play size={14} color={colors.textPrimary} strokeWidth={2} />
-          )}
-        </Pressable>
+
+        {!minimized && (
+          <>
+            <View style={styles.headerCenter}>
+              {isRecording && (
+                <View style={styles.recPill}>
+                  <View style={styles.recDot} />
+                  <Text style={styles.recText}>{recordingLabel}</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.headerRight}>
+              <Pressable style={styles.controlButton} onPress={reset} hitSlop={8}>
+                <RotateCcw size={14} color={colors.textPrimary} strokeWidth={2} />
+              </Pressable>
+              <Pressable
+                style={styles.controlButton}
+                onPress={() => (isPlaying ? pause() : play())}
+                hitSlop={8}
+              >
+                {isPlaying ? (
+                  <Pause size={14} color={colors.textPrimary} strokeWidth={2} />
+                ) : (
+                  <Play size={14} color={colors.textPrimary} strokeWidth={2} />
+                )}
+              </Pressable>
+            </View>
+          </>
+        )}
       </View>
+
+      {!minimized && (
+        <View style={styles.scrollArea}>
+          <GestureDetector gesture={pan}>
+            <View style={styles.clip}>
+              <Animated.View
+                style={[styles.content, animatedStyle, { width: bandWidth || undefined }]}
+                onLayout={onContentLayout}
+              >
+                <Text
+                  style={[
+                    styles.text,
+                    { fontSize: FONT_SIZES[fontSize], lineHeight: FONT_SIZES[fontSize] * 1.5 },
+                  ]}
+                >
+                  {displayText}
+                </Text>
+              </Animated.View>
+            </View>
+          </GestureDetector>
+
+          <LinearGradient
+            colors={[colors.overlayTeleprompter, 'transparent']}
+            style={[styles.fade, styles.fadeTop]}
+            pointerEvents="none"
+          />
+          <LinearGradient
+            colors={['transparent', colors.overlayTeleprompter]}
+            style={[styles.fade, styles.fadeBottom]}
+            pointerEvents="none"
+          />
+        </View>
+      )}
     </View>
   );
 });
@@ -208,6 +253,51 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: 25,
   },
+  bandMinimized: {
+    backgroundColor: 'transparent',
+    borderTopWidth: 0,
+    borderBottomWidth: 0,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 6,
+    zIndex: 4,
+  },
+  headerCenter: { flex: 1, alignItems: 'center' },
+  headerRight: { flexDirection: 'row', gap: 6 },
+  closeButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.overlayGlass,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    backgroundColor: colors.overlayGlass,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 999,
+  },
+  recDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.record },
+  recText: {
+    fontFamily: 'Manrope_700Bold',
+    fontSize: 10.5,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: colors.textSecondary,
+  },
+  scrollArea: { flex: 1 },
   clip: { flex: 1, overflow: 'hidden' },
   content: { position: 'absolute', paddingHorizontal: 30 },
   text: {
@@ -218,15 +308,6 @@ const styles = StyleSheet.create({
   fade: { position: 'absolute', left: 0, right: 0, height: 100 },
   fadeTop: { top: 0 },
   fadeBottom: { bottom: 0 },
-  controls: {
-    position: 'absolute',
-    top: 10,
-    right: 12,
-    flexDirection: 'row',
-    gap: 6,
-    zIndex: 3,
-    opacity: 0.70,
-  },
   controlButton: {
     width: 26,
     height: 26,

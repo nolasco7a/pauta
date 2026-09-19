@@ -55,11 +55,14 @@ const CameraSettingsSheet = forwardRef<BottomSheetModal, Props>(
       <BottomSheetModal
         ref={ref}
         index={0}
-        enablePanDownToClose={false}
+        enablePanDownToClose={true}
         backgroundStyle={styles.sheetBg}
         handleIndicatorStyle={styles.handle}
-        enableContentPanningGesture={false}
+        enableContentPanningGesture={true}
         onChange={(value) => callbackIsOpen(value)}
+        detached={false}
+        bottomInset={0}
+        style={{width: '96%', marginLeft: '2%'}}
       >
         <BottomSheetView style={styles.content}>
           <Text style={[type.title, styles.title]}>{t('cameraSettingsSheet.title')}</Text>

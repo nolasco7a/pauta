@@ -1,22 +1,19 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Plus, Video } from 'lucide-react-native';
+import { Info, Plus, Video } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, radii, spacing, type } from '../theme';
 import { useScript, type ScriptEntry } from '../state/ScriptContext';
 import RecentScriptCard from '../components/RecentScriptCard';
-import { useTranslation, type AppLocale } from '../i18n';
+import { useTranslation } from '../i18n';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
 
 export default function DashboardScreen({ navigation }: Props) {
   const { scripts, startNewScript, openScript, deleteScript } = useScript();
   const { t, locale, setLocale } = useTranslation();
-  const nextLocale: AppLocale = locale === 'es' ? 'en' : 'es';
-
-  const toggleLocale = () => setLocale(nextLocale);
 
   const handleStartNew = () => {
     startNewScript();
@@ -34,9 +31,23 @@ export default function DashboardScreen({ navigation }: Props) {
       <View style={styles.brandRow}>
         <Video size={20} color={colors.accent} strokeWidth={2} />
         <Text style={[type.title, styles.brandText]}>Pauta</Text>
-        <Pressable style={styles.localeSwitch} onPress={toggleLocale} hitSlop={8}>
-          <Text style={styles.localeSwitchText}>{nextLocale.toUpperCase()}</Text>
+        <Pressable style={styles.aboutButton} onPress={() => navigation.navigate('About')} hitSlop={8}>
+          <Info size={16} color={colors.textSecondary} strokeWidth={2} />
         </Pressable>
+        <View style={styles.localeSwitch}>
+          {(['es', 'en'] as const).map((code) => (
+            <Pressable
+              key={code}
+              onPress={() => setLocale(code)}
+              style={[styles.localePill, locale === code && styles.localePillActive]}
+              hitSlop={4}
+            >
+              <Text style={[styles.localePillText, locale === code && styles.localePillTextActive]}>
+                {code.toUpperCase()}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
 
       {/* Hero */}
@@ -98,20 +109,34 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
   },
   brandText: { color: colors.textPrimary, letterSpacing: 0.2, flex: 1 },
-  localeSwitch: {
-    paddingVertical: 5,
-    paddingHorizontal: 11,
+  aboutButton: {
+    width: 30,
+    height: 30,
     borderRadius: radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.bgElevated,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  localeSwitchText: {
+  localeSwitch: {
+    flexDirection: 'row',
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.full,
+    padding: 3,
+    gap: 2,
+  },
+  localePill: { paddingVertical: 5, paddingHorizontal: 10, borderRadius: radii.full },
+  localePillActive: { backgroundColor: colors.accent },
+  localePillText: {
     fontFamily: 'Manrope_700Bold',
     fontSize: 11,
     letterSpacing: 0.5,
     color: colors.textSecondary,
   },
+  localePillTextActive: { color: colors.accentText },
   hero: {
     minHeight: 320,
     justifyContent: 'center',

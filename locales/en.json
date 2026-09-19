@@ -45,8 +45,7 @@
   "camera": {
     "permissionTitle": "Allows access",
     "permissionBody": "Pauta needs your camera and microphone to record the video.",
-    "permissionButton": "Allow access",
-    "tapToRecord": "Tap to record"
+    "permissionButton": "Allow access"
   },
   "settingsSheet": {
     "title": "Teleprompter Settings",
@@ -89,5 +88,11 @@
   },
   "teleprompter": {
     "placeholder": "Write your script to see it here…"
+  },
+  "about": {
+    "title": "About",
+    "version": "Version %{version}",
+    "body": "Pauta came out of a concrete problem: recording a video while reading a script usually requires extra gear —a second phone, a mirror, a teleprompter rig— just to keep the text in view while you record.\n\nHaving the teleprompter right on the screen, over the camera, solves that without any extra hardware. It also saves time: it avoids repeating takes over and over and removes the need to memorize the whole script.\n\nIt also solves something more personal: not feeling comfortable on camera. Reading the script while recording gives a clear direction, keeps the nerves down, and results in a better video.",
+    "creditPrefix": "Designed and developed by"
   }
 }

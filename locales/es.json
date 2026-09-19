@@ -45,8 +45,7 @@
   "camera": {
     "permissionTitle": "Permite el acceso",
     "permissionBody": "Pauta necesita tu cámara y micrófono para grabar el video.",
-    "permissionButton": "Permitir acceso",
-    "tapToRecord": "Toque para grabar"
+    "permissionButton": "Permitir acceso"
   },
   "settingsSheet": {
     "title": "Ajustes de teleprompter",
@@ -89,5 +88,11 @@
   },
   "teleprompter": {
     "placeholder": "Escribe tu guion para verlo aquí…"
+  },
+  "about": {
+    "title": "Acerca de",
+    "version": "Versión %{version}",
+    "body": "Pauta nació de un problema concreto: grabar un video leyendo un guion normalmente exige equipo extra —un segundo teléfono, un espejo, un rig de teleprompter— solo para tener el texto a la vista mientras grabas.\n\nTener el teleprompter directamente en la pantalla, encima de la cámara, resuelve eso sin hardware adicional. Y de paso ahorra tiempo: evita repetir tomas una y otra vez y quita la necesidad de memorizar el guion completo.\n\nTambién resuelve algo más personal: no sentirse cómodo frente a cámara. Leer el guion mientras grabas da una dirección clara, evita los nervios y, como resultado, sale un mejor video.",
+    "creditPrefix": "Diseñado y desarrollado por"
   }
 }

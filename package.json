@@ -34,8 +34,11 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~57.0.2",
     "lingosync": "^0.1.0",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "@react-native-community/cli": "latest"
   },
   "scripts": {
     "start": "expo start",
@@ -49,7 +52,9 @@
     "master": "locales/es.json",
     "masterLocale": "es",
     "output": "locales",
-    "languages": ["en"],
+    "languages": [
+      "en"
+    ],
     "provider": {
       "name": "deepl",
       "apiKeyEnv": "DEEPL_API_KEY"
