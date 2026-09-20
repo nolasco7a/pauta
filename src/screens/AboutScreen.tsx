@@ -38,7 +38,7 @@ export default function AboutScreen({ navigation }: Props) {
           {t('about.creditPrefix')}{' '}
           <Text
             style={styles.creditLink}
-            onPress={() => Linking.openURL('mailto:allan.mejianolasco@gmail.com')}
+            onPress={() => Linking.openURL('mailto:allanmejia.dev@gmail.com')}
           >
             Allan Mejia
           </Text>
