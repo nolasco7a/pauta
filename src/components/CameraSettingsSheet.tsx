@@ -13,6 +13,7 @@ type Props = {
   onQualityChange: (v: CameraQuality) => void;
   stabilization: StabilizationMode;
   onStabilizationChange: (v: StabilizationMode) => void;
+  supportedStabilizationModes: StabilizationMode[];
   exposureNormalized: number;
   onExposureChange: (v: number) => void;
   supportsExposure: boolean;
@@ -32,6 +33,7 @@ const CameraSettingsSheet = forwardRef<BottomSheetModal, Props>(
       onQualityChange,
       stabilization,
       onStabilizationChange,
+      supportedStabilizationModes,
       exposureNormalized,
       onExposureChange,
       supportsExposure,
@@ -102,35 +104,41 @@ const CameraSettingsSheet = forwardRef<BottomSheetModal, Props>(
             </Text>
           </View>
 
-          {/* Estabilización */}
-          <View style={[styles.row, styles.rowBordered]}>
-            <View style={styles.rowHeader}>
-              <View style={styles.rowLabel}>
-                <Waves size={15} color={colors.textSecondary} strokeWidth={2} />
-                <Text style={[type.body, styles.rowLabelText]}>
-                  {t('cameraSettingsSheet.stabilization')}
-                </Text>
-              </View>
-              <View style={styles.segmented}>
-                {STABILIZATION_ORDER.map((key) => (
-                  <Pressable
-                    key={key}
-                    onPress={() => onStabilizationChange(key)}
-                    style={[styles.segment, stabilization === key && styles.segmentActive]}
-                  >
-                    <Text
-                      style={[
-                        styles.segmentText,
-                        stabilization === key && styles.segmentTextActive,
-                      ]}
-                    >
-                      {t(`cameraSettingsSheet.stabilizationModes.${key}`)}
-                    </Text>
-                  </Pressable>
-                ))}
+          {/* Estabilización: solo se muestran los modos que el device actual reporta
+              soportar (device.supportsVideoStabilizationMode) — la cámara frontal, por
+              ejemplo, normalmente no soporta 'cinematic'. */}
+          {supportedStabilizationModes.length > 1 && (
+            <View style={[styles.row, styles.rowBordered]}>
+              <View style={styles.rowHeader}>
+                <View style={styles.rowLabel}>
+                  <Waves size={15} color={colors.textSecondary} strokeWidth={2} />
+                  <Text style={[type.body, styles.rowLabelText]}>
+                    {t('cameraSettingsSheet.stabilization')}
+                  </Text>
+                </View>
+                <View style={styles.segmented}>
+                  {STABILIZATION_ORDER.filter((key) => supportedStabilizationModes.includes(key)).map(
+                    (key) => (
+                      <Pressable
+                        key={key}
+                        onPress={() => onStabilizationChange(key)}
+                        style={[styles.segment, stabilization === key && styles.segmentActive]}
+                      >
+                        <Text
+                          style={[
+                            styles.segmentText,
+                            stabilization === key && styles.segmentTextActive,
+                          ]}
+                        >
+                          {t(`cameraSettingsSheet.stabilizationModes.${key}`)}
+                        </Text>
+                      </Pressable>
+                    )
+                  )}
+                </View>
               </View>
             </View>
-          </View>
+          )}
 
           {/* Exposición */}
           {supportsExposure && (

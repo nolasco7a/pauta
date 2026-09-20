@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Asset, requestPermissionsAsync } from 'expo-media-library';
 import { File, Paths } from 'expo-file-system';
@@ -23,7 +23,7 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, radii, type } from '../theme';
-import { useScript } from '../state/ScriptContext';
+import { useScript, type StabilizationMode } from '../state/ScriptContext';
 import TeleprompterOverlay, { type TeleprompterHandle } from '../components/TeleprompterOverlay';
 import SettingsSheet from '../components/SettingsSheet';
 import CameraSettingsSheet from '../components/CameraSettingsSheet';
@@ -39,6 +39,7 @@ function formatDuration(totalSeconds: number) {
 }
 
 const ZOOM_PRESETS = [0.5, 1, 1.5, 2] as const;
+const STABILIZATION_MODES: StabilizationMode[] = ['off', 'standard', 'cinematic'];
 
 export default function CameraScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
@@ -75,7 +76,21 @@ export default function CameraScreen({ navigation }: Props) {
   const [zoomRange, setZoomRange] = useState<{ min: number; max: number; ratio: number } | null>(
     null
   );
+  // ponytail: CameraX (Android) rechaza setExposureBias con "Camera is not active" si se
+  // llama antes de que la sesión arranque de verdad — AVFoundation (iOS) no tiene ese
+  // problema, así que esta espera queda aislada a Android para no tocar el comportamiento
+  // ya funcional de iOS.
+  const [cameraReady, setCameraReady] = useState(false);
+  // Al hacer flip, el `device` (y por lo tanto `supportsTorch`) cambia en React de inmediato,
+  // pero el controller nativo tarda un instante en reconectar al nuevo lente. Si en ese hueco
+  // se manda torchMode con el flash del lente NUEVO mientras el hardware activo todavía es el
+  // VIEJO (ej. frontal, sin flash), CameraX revienta con "No flash unit" — se espera a que
+  // onConfigured confirme la reconexión antes de volver a aplicar torchMode.
+  const [controllerReady, setControllerReady] = useState(false);
   const device = useCameraDevice(position);
+  // Algunos dispositivos (tablets, ciertos Android) no tienen cámara frontal o trasera —
+  // se consulta si existe antes de ofrecer el botón de cambiar de cámara.
+  const otherPositionDevice = useCameraDevice(position === 'front' ? 'back' : 'front');
   const qualityPreset = CAMERA_QUALITY_PRESETS[cameraQuality];
   const videoOutput = useVideoOutput({
     targetResolution: qualityPreset.resolution,
@@ -88,6 +103,12 @@ export default function CameraScreen({ navigation }: Props) {
     device && supportsExposure
       ? device.minExposureBias + exposureNormalized * (device.maxExposureBias - device.minExposureBias)
       : undefined;
+  // No todos los devices (sobre todo la cámara frontal) soportan los tres modos — se
+  // consulta directamente al device en vez de asumir que están todos disponibles, para no
+  // ofrecer en el sheet una opción que la cámara actual no puede aplicar.
+  const supportedStabilizationModes = STABILIZATION_MODES.filter((mode) =>
+    device ? device.supportsVideoStabilizationMode(mode) : mode === 'off'
+  );
   const supportsLowLightBoost = device?.supportsLowLightBoost ?? false;
   const supportsTorch = device?.hasTorch ?? false;
 
@@ -140,12 +161,18 @@ export default function CameraScreen({ navigation }: Props) {
           setIsRecording(false);
           recorderRef.current = null;
 
+          // El recorder entrega una ruta de archivo plana (sin esquema) en ambas
+          // plataformas — expo-file-system y expo-media-library esperan un URI. iOS lo
+          // tolera igual, pero Android revienta ("URI is not absolute") o falla en
+          // silencio (Asset.create) si falta el prefijo "file://".
+          const sourceUri = filePath.startsWith('file://') ? filePath : `file://${filePath}`;
+
           // Copia propia y durable primero: reconstruir un reproductor desde un URI de
           // Fotos (PHAsset) no es confiable después del hecho, así que esa copia es la
           // única fuente de verdad para reproducir dentro de la app.
           let localUri: string | null = null;
           try {
-            const source = new File(filePath);
+            const source = new File(sourceUri);
             const destination = new File(
               Paths.document,
               `${Date.now()}-${Math.random().toString(36).slice(2)}${source.extension}`
@@ -166,7 +193,7 @@ export default function CameraScreen({ navigation }: Props) {
           try {
             const { status } = await requestPermissionsAsync();
             if (status === 'granted') {
-              const asset = await Asset.create(filePath);
+              const asset = await Asset.create(sourceUri);
               assetId = asset.id;
             }
           } catch (error) {
@@ -198,6 +225,7 @@ export default function CameraScreen({ navigation }: Props) {
     setPosition((p) => (p === 'front' ? 'back' : 'front'));
     setZoomRange(null);
     setZoomFactor(null);
+    setControllerReady(false);
   };
   // onConfigured se dispara cada vez que la sesión reconecta un device (incluye el flip
   // frontal/trasera) — a diferencia de onStarted, que solo ocurre una vez al activar la
@@ -207,6 +235,7 @@ export default function CameraScreen({ navigation }: Props) {
     setTimeout(() => {
       try {
         const controller = cameraRef.current?.controller;
+        if (controller) setControllerReady(true);
         if (controller && controller.zoom > 0) {
           setZoomRange({
             min: controller.minZoom,
@@ -305,8 +334,9 @@ export default function CameraScreen({ navigation }: Props) {
           outputs={videoOutput ? [videoOutput] : []}
           enableNativeZoomGesture
           onConfigured={handleCameraConfigured}
-          torchMode={supportsTorch && torchOn ? 'on' : 'off'}
-          exposure={exposureBias}
+          onStarted={() => setCameraReady(true)}
+          torchMode={supportsTorch && controllerReady ? (torchOn ? 'on' : 'off') : undefined}
+          exposure={Platform.OS === 'android' && !cameraReady ? undefined : exposureBias}
           enableLowLightBoost={supportsLowLightBoost ? lowLightBoost : undefined}
           constraints={[{ videoStabilizationMode: stabilization }]}
         />
@@ -335,9 +365,9 @@ export default function CameraScreen({ navigation }: Props) {
       )}
 
       {/* Teleprompter: agrupa cierre, indicador de grabación y controles del teleprompter
-          en un solo panel arriba, pegado al inset superior — el cierre y el indicador se
-          mantienen accesibles aunque haya un sheet de ajustes abierto; solo el texto que
-          scrollea se oculta para no chocar visualmente con el sheet. */}
+          en un solo panel arriba, pegado al inset superior — con el sheet de ajustes de
+          cámara abierto se "minimiza" (solo queda el botón de cerrar) para no chocar
+          visualmente con él, pero sigue siendo posible salir de la cámara sin cerrarlo antes. */}
       <View style={[styles.teleprompterWrap, { top: insets.top }]}>
         <TeleprompterOverlay
           ref={teleprompterRef}
@@ -347,10 +377,10 @@ export default function CameraScreen({ navigation }: Props) {
           onClose={handleClose}
           isRecording={isRecording}
           recordingLabel={formatDuration(seconds)}
-          contentHidden={isCameraSettingsOpen}
+          minimized={isCameraSettingsOpen}
         />
       </View>
-5678ighjfr
+
       {/* Controles inferiores */}
       <View style={[styles.controlsWrap, { paddingBottom: insets.bottom + 22 }]}>
         {/* Zoom */}
@@ -418,9 +448,12 @@ export default function CameraScreen({ navigation }: Props) {
 
           <View style={styles.controlGroup}>
             <Pressable
-              style={[styles.controlButton, isRecording && styles.controlButtonDisabled]}
+              style={[
+                styles.controlButton,
+                (isRecording || !otherPositionDevice) && styles.controlButtonDisabled,
+              ]}
               onPress={handleFlip}
-              disabled={isRecording}
+              disabled={isRecording || !otherPositionDevice}
               hitSlop={8}
             >
               <SwitchCamera size={20} color={colors.textPrimary} strokeWidth={2} />
@@ -459,6 +492,7 @@ export default function CameraScreen({ navigation }: Props) {
         onQualityChange={setCameraQuality}
         stabilization={stabilization}
         onStabilizationChange={setStabilization}
+        supportedStabilizationModes={supportedStabilizationModes}
         exposureNormalized={exposureNormalized}
         onExposureChange={setExposureNormalized}
         supportsExposure={supportsExposure}

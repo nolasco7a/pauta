@@ -84,7 +84,10 @@ export default function DashboardScreen({ navigation }: Props) {
             </Pressable>
           )}
         </View>
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          style={styles.scriptsList}
+        >
           {scripts.map((item) => (
             <RecentScriptCard
               key={item.id}
@@ -175,13 +178,14 @@ const styles = StyleSheet.create({
   },
   ctaPressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
   ctaText: { color: colors.accentText },
-  recentSection: { paddingHorizontal: spacing.xl, paddingBottom: spacing.lg},
+  recentSection: { flex: 1, paddingHorizontal: spacing.xl, paddingBottom: spacing.lg },
   recentHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 12,
   },
+  scriptsList: { flex: 1 },
   recentLabel: { color: colors.textTertiary },
   seeAllText: { fontFamily: 'Manrope_700Bold', fontSize: 12, color: colors.accent },
 });
