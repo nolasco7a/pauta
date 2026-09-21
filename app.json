@@ -18,6 +18,7 @@
     },
     "android": {
       "package": "com.allanmejianolasco.pauta",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#0C0C0E",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -64,6 +65,12 @@
     ],
     "experiments": {
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "80596206-c838-4f05-9f58-3f07445bfc0c"
+      }
+    },
+    "owner": "nolasco7a"
   }
 }
