@@ -17,7 +17,7 @@
       "appleTeamId": "P3TZ7BSZCZ"
     },
     "android": {
-      "package": "com.allanmejianolasco.pauta",
+      "package": "com.pauta.app",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#0C0C0E",
